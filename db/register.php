@@ -1,23 +1,15 @@
 <?php
-if (isset($_POST['submit_btn'])) {
-    $first_name = $_POST['fst_name'];
-    $last_name =  $_POST['lst_name'];
-    $mobileNumber =  $_POST['mobile_number'];
+if (wp_verify_nonce($_POST['nonce'], 'ajax-nonce')) {
+    $first_name = $_POST['name'];
     $user_email =  $_POST['email'];
     $user_pass =  $_POST['password'];
-    if (empty($first_name)) {
-        $_POST['userNameError'] = "<strong>* Error</strong> User Name can not empty";
-    } else if (empty($user_email)) {
-        $_POST['userEmailError'] = "<strong>* Error</strong> User email can not empty";
-    } else if (empty($user_pass)) {
-        $_POST['userPasswordError'] = "<strong>* Error</strong> User Password can not empty";
+    $user = wp_create_user($first_name, $user_pass, $user_email);
+    if (is_wp_error($user)) {
+        echo $error = $user->get_error_message();
     } else {
-        $user = wp_create_user($first_name, $user_email, $user_pass);
-        if (is_wp_error($user)) {
-            $error = $user->get_error_message();
-            $_POST['error1'] = $error;
-        } else {
-            wp_redirect('home');
-        }
+        echo "You are registerd successfully";
     }
+} else {
+    echo "You are Wrong User";
 }
+exit();
