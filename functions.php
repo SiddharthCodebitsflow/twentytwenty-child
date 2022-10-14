@@ -7,6 +7,10 @@ function get_enqueue_file_user()
         get_stylesheet_directory_uri() . '/js/ajax.js',
         array('jquery')
     );
+    wp_localize_script('ajax_script', 'ajax_var', array(
+        'url' => admin_url('admin-ajax.php'),
+        'nonce' => wp_create_nonce('ajax-nonce')
+    ));
     wp_enqueue_style(
         'child-theme',
         get_template_directory_uri() . "/style.css",
@@ -18,10 +22,6 @@ function get_enqueue_file_user()
     wp_enqueue_style(
         'bootstrap-icon',
         'https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.3/font/bootstrap-icons.css'
-    );
-    wp_enqueue_style(
-        'footer-css',
-        get_stylesheet_directory_uri() . "/css/footer.css",
     );
 }
 add_action('wp_enqueue_scripts', 'get_enqueue_file_user');
@@ -262,39 +262,41 @@ add_shortcode('loadmore', 'testimonial_shortcode_loadMore');
 
 function weichie_load_more()
 {
-    $args = array(
-        'post_type' => 'testimonials',
-        'posts_per_page' => 6,
-        'paged' => $_POST['paged'],
-        'orderby' => 'title',
-        'order' => 'ASC',
-        'tax_query' => array(
-            array(
-                'taxonomy' => 'testimonials_category',
-                'field' => 'term_id',
-                'terms'    => array('cat' => $_POST['testimonialId_name'])
+    if (wp_verify_nonce($_POST['nonce'], 'ajax-nonce')) {
+        $args = array(
+            'post_type' => 'testimonials',
+            'posts_per_page' => 6,
+            'paged' => $_POST['paged'],
+            'orderby' => 'title',
+            'order' => 'ASC',
+            'tax_query' => array(
+                array(
+                    'taxonomy' => 'testimonials_category',
+                    'field' => 'term_id',
+                    'terms'    => array('cat' => $_POST['testimonialId_name'])
+                )
             )
-        )
-    );
-    $testimonial_query = new WP_Query($args);
-    if ($testimonial_query->have_posts()) :
+        );
+        $testimonial_query = new WP_Query($args);
+        if ($testimonial_query->have_posts()) :
     ?>
-        <ul class="testimonial-listing">
-            <?php
-            while ($testimonial_query->have_posts()) : $testimonial_query->the_post();
-            ?>
-                <li id="testimonial-<?php the_ID(); ?>">
-                    <h4><a href="<?php the_permalink(); ?>" title="Read"><?php the_title(); ?></a></h4>
-                    <?php the_excerpt() ?>
-                    <?php the_date() ?>
-                </li>
-            <?php
-            endwhile;
-            ?>
-        </ul>
-    <?php
-        wp_reset_postdata();
-    endif;
+            <ul class="testimonial-listing">
+                <?php
+                while ($testimonial_query->have_posts()) : $testimonial_query->the_post();
+                ?>
+                    <li id="testimonial-<?php the_ID(); ?>">
+                        <h4><a href="<?php the_permalink(); ?>" title="Read"><?php the_title(); ?></a></h4>
+                        <?php the_excerpt() ?>
+                        <?php the_date() ?>
+                    </li>
+                <?php
+                endwhile;
+                ?>
+            </ul>
+        <?php
+            wp_reset_postdata();
+        endif;
+    }
     exit;
 }
 add_action('wp_ajax_weichie_load_more_btn', 'weichie_load_more');
@@ -308,16 +310,9 @@ add_shortcode('registration_form', 'registration_form_short_code');
 
 function login_form_short_code()
 {
-    get_template_part('login');
+    wp_login_form();
 }
 add_shortcode('login', 'login_form_short_code');
-
-function registeration_and_login()
-{
-    get_template_part('db/register');
-    get_template_part('db/login');
-}
-add_action('template_redirect', 'registeration_and_login');
 
 function register_sidebar_1()
 {
@@ -362,13 +357,17 @@ class FAQ extends WP_Widget
             '',
             true
         );
+        wp_localize_script('ajax_script', 'ajax_var', array(
+            'url' => admin_url('admin-ajax.php'),
+            'nonce' => wp_create_nonce('ajax-nonce')
+        ));
     }
 
     public function widget($args, $instance)
     {
         // $title = apply_filters('widget_title', $instance['title']);
         echo $args['before_widget'];
-        $i = 1;
+        // $i = 1;
         foreach ($instance as $k => $v) {
             echo $k . " : " . $v . "<br>";
         }
@@ -378,7 +377,7 @@ class FAQ extends WP_Widget
     {
         $i = 1;
         $title    = $instance['title'];
-    ?>
+        ?>
         <p><label for="<?php echo $this->get_field_id('title'); ?>"><?php _e('Title:'); ?>
                 <input class="widefat" id="<?php echo $this->get_field_id('title'); ?>" name="<?php echo $this->get_field_name('title'); ?>" type="text" value="<?php echo esc_attr($title); ?>" />
             </label></p>
@@ -402,17 +401,27 @@ class FAQ extends WP_Widget
 
 function add_more()
 {
-    $questionId = $_POST['questionId'];
-    $questionName = $_POST['questionName'];
-    $answerId = $_POST['answerid'];
-    $answerName = $_POST['answerName']; ?>
-    <p><label for="Enter the Question">Enter The Question</label>
-        <input class="widefat" id="<?php echo $questionId ?>" name="<?php echo $questionName ?>" type="text" value="" />
-    </p>
-    <p><label for="Enter the Answer">Enter the Answer</label>
-        <textarea class="widefat" id="<?php echo $answerId ?>" name="<?php echo $answerName ?>" type="text" cols="46" rows="10"></textarea>
-    </p>
+    if (wp_verify_nonce($_POST['nonce'], 'ajax-nonce')) {
+
+        $questionId = $_POST['questionId'];
+        $questionName = $_POST['questionName'];
+        $answerId = $_POST['answerid'];
+        $answerName = $_POST['answerName']; ?>
+        <p><label for="Enter the Question">Enter The Question</label>
+            <input class="widefat" id="<?php echo $questionId ?>" name="<?php echo $questionName ?>" type="text" value="" />
+        </p>
+        <p><label for="Enter the Answer">Enter the Answer</label>
+            <textarea class="widefat" id="<?php echo $answerId ?>" name="<?php echo $answerName ?>" type="text" cols="46" rows="10"></textarea>
+        </p>
 <?php
+    }
     die;
 }
 add_action('wp_ajax_add_more', 'add_more');
+
+function user_register_form_ajax()
+{
+    get_template_part('db/register');
+}
+add_action('wp_ajax_register_form', 'user_register_form_ajax');
+add_action('wp_ajax_nopriv_register_form', 'user_register_form_ajax');
